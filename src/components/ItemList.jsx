@@ -3,7 +3,37 @@ import { ENDPOINTS } from '../api/apiConfig';
 import BidModal from './BidModal';
 import ImageModal from './ImageModal';
 import ItemActionModal from './ItemActionModal';
+import BidAccessModal from './BidAccessModal';
+import PublicBidsModal from './PublicBidsModal';
 import { mockItems, getMockImageUrl } from './MockData';
+import './ai-description.css';
+import './public-bids.css';
+
+// AI Description component
+function AiDescription({ description }) {
+  const [expanded, setExpanded] = useState(false);
+  
+  return (
+    <div className="ai-description">
+      <div className="ai-description-title">
+        <span className="ai-description-icon">🤖</span>
+        AI Description
+        <button 
+          className="ai-description-toggle" 
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(!expanded);
+          }}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      </div>
+      <div className={`ai-description-content ${expanded ? 'expanded' : ''}`}>
+        {description}
+      </div>
+    </div>
+  );
+}
 
 function ItemList() {
   const [items, setItems] = useState([]);
@@ -15,6 +45,8 @@ function ItemList() {
   const [actionType, setActionType] = useState(null); // 'delete' or 'markSold'
   const [actionSuccess, setActionSuccess] = useState(null);
   const [useMockData, setUseMockData] = useState(false);
+  const [bidAccessItem, setBidAccessItem] = useState(null);
+  const [publicBidsItem, setPublicBidsItem] = useState(null);
 
   const fetchItems = async () => {
     try {
@@ -54,9 +86,9 @@ function ItemList() {
     setActionType(type);
   };
 
-  const handleActionComplete = () => {
-    // Set success message based on action type
-    setActionSuccess(actionType === 'delete' ? 'Item deleted successfully' : 'Item marked as sold');
+  const handleActionComplete = (message) => {
+    // Set success message based on action type or use provided message
+    setActionSuccess(message || (actionType === 'delete' ? 'Item deleted successfully' : 'Item marked as sold'));
     
     // Refresh the items list after an action
     fetchItems();
@@ -131,6 +163,9 @@ function ItemList() {
                     {maskEmail(item.email)}
                   </div>
                 )}
+                {item.bids && item.bids.length > 0 && (
+                  <div className="bid-badge">{item.bids.length}</div>
+                )}
               </div>
               <div className="thumbnail-overlay">
                 <span className="view-icon">🔍</span>
@@ -145,6 +180,9 @@ function ItemList() {
             <div className="item-details">
               <h3>{item.name}</h3>
               <p>{item.description}</p>
+              {item.aiDescription && (
+                <AiDescription description={item.aiDescription} />
+              )}
               {item.basePrice && (
                 <div className="price-display">
                   <span className="currency-symbol">
@@ -162,12 +200,31 @@ function ItemList() {
                   {item.status === 'SOLD' ? 'Sold' : 'Place Bid'}
                 </button>
                 
+                <button 
+                  className="view-bids-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPublicBidsItem(item);
+                  }}
+                >
+                  View Bids
+                  {item.bids && item.bids.length > 0 && (
+                    <span className="bid-badge">{item.bids.length}</span>
+                  )}
+                </button>
+                
                 {/* Show management buttons for the item creator */}
                 {(item.email === localStorage.getItem('userEmail') || 
                   item.email === 'bidmyhobby@gmail.com' || 
                   item.userId === 'user123') && 
                   item.status === 'ACTIVE' && (
                   <div className="management-buttons">
+                    <button 
+                      className="view-bids-button"
+                      onClick={() => setBidAccessItem(item)}
+                    >
+                      Detailed Bids
+                    </button>
                     <button 
                       className="mark-sold-button"
                       onClick={() => handleActionClick(item, 'markSold')}
@@ -210,6 +267,20 @@ function ItemList() {
           actionType={actionType}
           onClose={() => { setActionItem(null); setActionType(null); }}
           onActionComplete={handleActionComplete}
+        />
+      )}
+
+      {bidAccessItem && (
+        <BidAccessModal
+          item={bidAccessItem}
+          onClose={() => setBidAccessItem(null)}
+        />
+      )}
+
+      {publicBidsItem && (
+        <PublicBidsModal
+          item={publicBidsItem}
+          onClose={() => setPublicBidsItem(null)}
         />
       )}
     </div>

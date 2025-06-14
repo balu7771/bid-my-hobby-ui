@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ENDPOINTS } from '../api/apiConfig';
 
 function ItemActionModal({ item, actionType, onClose, onActionComplete }) {
   const [email, setEmail] = useState(item.email || '');
@@ -21,21 +22,39 @@ function ItemActionModal({ item, actionType, onClose, onActionComplete }) {
       const queryParams = new URLSearchParams({ email });
       
       if (actionType === 'delete') {
-        response = await fetch(`/api/bid/deleteItem/${item.itemId}?${queryParams}`, {
+        // Extract just the filename part from the path
+        const fullPath = item.itemId;
+        const filename = fullPath.split('/').pop();
+        console.log('Deleting item with ID:', filename, 'from full path:', fullPath);
+        response = await fetch(ENDPOINTS.DELETE_ITEM(filename) + `?${queryParams}`, {
           method: 'DELETE'
         });
       } else if (actionType === 'markSold') {
-        response = await fetch(`/api/bid/markAsSold/${item.itemId}?${queryParams}`, {
+        // Extract just the filename part from the path
+        const fullPath = item.itemId;
+        const filename = fullPath.split('/').pop();
+        console.log('Marking item as sold with ID:', filename, 'from full path:', fullPath);
+        response = await fetch(ENDPOINTS.MARK_AS_SOLD(filename) + `?${queryParams}`, {
           method: 'POST'
         });
       }
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(text || `Failed to ${actionType === 'delete' ? 'delete' : 'mark as sold'}`);
+        console.log(`Error response (${response.status}):`, text);
+        
+        // Handle specific error messages based on status code
+        if (response.status === 404) {
+          throw new Error('Item not found');
+        } else if (response.status === 403) {
+          throw new Error('Only the creator can perform this action');
+        } else {
+          throw new Error(text || `Failed to ${actionType === 'delete' ? 'delete' : 'mark as sold'}`);
+        }
       }
 
-      onActionComplete();
+      const responseText = await response.text();
+      onActionComplete(responseText);
     } catch (err) {
       setError(err.message);
     } finally {

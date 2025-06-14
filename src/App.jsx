@@ -1,43 +1,85 @@
-import { useState } from 'react'
-import './App.css'
-import ItemUpload from './components/ItemUpload'
-import ItemList from './components/ItemList'
-import UserEmailSetter from './components/UserEmailSetter'
+import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import ItemList from './components/ItemList';
+import ItemUpload from './components/ItemUpload';
+import UserEmailSetter from './components/UserEmailSetter';
+import BidVerificationPage from './components/BidVerificationPage';
+import ChatWithAI from './components/ChatWithAI';
+import AboutPage from './components/AboutPage';
+import VisitorCounter from './components/VisitorCounter';
+import './App.css';
+import './components/VerificationSuccess.css';
+import './components/BidAccessModal.css';
+import './components/chat.css';
+import './components/about.css';
+import './components/visitor-counter.css';
 
 function App() {
-  const [view, setView] = useState('browse') // 'browse' or 'upload'
+  const [activeTab, setActiveTab] = useState('browse');
 
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1 className="app-title">Bid My Hobby</h1>
-        <div className="app-nav">
-          <button 
-            className={`nav-button ${view === 'browse' ? 'active' : ''}`}
-            onClick={() => setView('browse')}
-          >
-            Browse Items
-          </button>
-          <button 
-            className={`nav-button ${view === 'upload' ? 'active' : ''}`}
-            onClick={() => setView('upload')}
-          >
-            Share Creation
-          </button>
-        </div>
-      </header>
-
-      <UserEmailSetter />
-
-      <main>
-        {view === 'upload' ? <ItemUpload /> : <ItemList />}
-      </main>
-      
-      <footer className="app-footer">
-        <p>© {new Date().getFullYear()} Bid My Hobby - Share your passion with the world</p>
-      </footer>
-    </div>
-  )
+    <Router>
+      <div className="app-container">
+        <header className="app-header">
+          <div className="logo-container">
+            <h1>Bid My Hobby</h1>
+            <span className="tagline">Where Passion Meets Value</span>
+          </div>
+          <UserEmailSetter />
+        </header>
+        
+        <Routes>
+          <Route path="/verify-bids" element={<BidVerificationPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/" element={
+            <>
+              <nav className="app-nav">
+                <ul>
+                  <li>
+                    <button 
+                      className={activeTab === 'browse' ? 'active' : ''} 
+                      onClick={() => setActiveTab('browse')}
+                    >
+                      Browse Items
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      className={activeTab === 'upload' ? 'active' : ''} 
+                      onClick={() => setActiveTab('upload')}
+                    >
+                      Share Your Creation
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      className={activeTab === 'chat' ? 'active' : ''} 
+                      onClick={() => setActiveTab('chat')}
+                    >
+                      Chat With AI
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+              
+              <main className="app-main">
+                {activeTab === 'browse' && <ItemList />}
+                {activeTab === 'upload' && <ItemUpload />}
+                {activeTab === 'chat' && <ChatWithAI />}
+              </main>
+            </>
+          } />
+        </Routes>
+        
+        <footer className="app-footer">
+          <p>&copy; {new Date().getFullYear()} Bid My Hobby. All rights reserved.</p>
+          <Link to="/about" className="about-link">About Us</Link>
+        </footer>
+        
+        <VisitorCounter />
+      </div>
+    </Router>
+  );
 }
 
-export default App
+export default App;

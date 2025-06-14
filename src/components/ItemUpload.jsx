@@ -38,6 +38,9 @@ function ItemUpload() {
 
     setLoading(true);
     setMessage('');
+    
+    // Inform user about content moderation
+    setMessage('Uploading and analyzing image...');
 
     // According to Swagger, the file should be in the request body as JSON
     // But multipart/form-data is more appropriate for file uploads
@@ -82,7 +85,14 @@ function ItemUpload() {
         setFile(null);
         setPreview(null);
       } else {
-        setMessage(`Error: ${data.message || 'Failed to upload item'}`);
+        // Handle specific error messages for image moderation
+        if (data.message && data.message.includes('inappropriate content')) {
+          setMessage('Error: The image contains inappropriate content and cannot be uploaded.');
+        } else if (data.message && data.message.includes('not appear to be a hobby item')) {
+          setMessage('Error: The image does not appear to be a hobby item. Only hobby items can be uploaded.');
+        } else {
+          setMessage(`Error: ${data.message || 'Failed to upload item'}`);
+        }
       }
     } catch (error) {
       setMessage(`Error: ${error.message}`);
@@ -172,15 +182,35 @@ function ItemUpload() {
               accept="image/*"
               onChange={handleFileChange}
               className="file-input"
+              capture="environment"
               required
             />
-            <label htmlFor="image" className="file-input-label">
-              Choose File
-            </label>
+            <div className="upload-buttons">
+              <label htmlFor="image" className="file-input-label">
+                Choose File
+              </label>
+              <div className="camera-button-container">
+                <label htmlFor="camera" className="camera-input-label">
+                  Take Photo
+                </label>
+                <small className="mobile-only-note">Works on mobile devices</small>
+                <input
+                  type="file"
+                  id="camera"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="file-input"
+                  capture="user"
+                />
+              </div>
+            </div>
             <span className="file-name">
               {file ? file.name : 'No file selected'}
             </span>
           </div>
+          <small className="form-note">
+            Note: All images are analyzed by AI to ensure they're appropriate hobby items.
+          </small>
           
           {preview && (
             <div className="image-preview-container">
