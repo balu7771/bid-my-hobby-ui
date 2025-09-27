@@ -1,39 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ENDPOINTS } from '../api/apiConfig';
 
 function BidAccessModal({ item, onClose }) {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [bids, setBids] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!email) {
-      setError('Please enter your email address');
-      return;
-    }
+  useEffect(() => {
+    fetchBids();
+  }, [item.itemId]);
 
-    setLoading(true);
-    setError(null);
-
+  const fetchBids = async () => {
     try {
-      const response = await fetch(`${ENDPOINTS.REQUEST_BID_ACCESS(item.itemId)}?email=${encodeURIComponent(email)}`, {
+      const response = await fetch(ENDPOINTS.GET_BIDS, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ itemId: item.itemId })
       });
-
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to request bid access');
+        throw new Error('Failed to fetch bids');
       }
-
-      setSuccess(true);
+      const data = await response.json();
+      setBids(data.sort((a, b) => b.bidAmount - a.bidAmount));
     } catch (err) {
-      setError(err.message);
+      setError('Failed to load bids: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -50,42 +42,32 @@ function BidAccessModal({ item, onClose }) {
         <div className="modal-body">
           {error && <div className="error-message">{error}</div>}
           
-          {success ? (
-            <div className="success-container">
-              <div className="success-message">
-                Verification email sent! Please check your inbox and click the link to view all bids.
-              </div>
-              <button onClick={onClose} className="close-success-button">
-                Close
-              </button>
-            </div>
+          {loading ? (
+            <div className="loading">Loading bids...</div>
+          ) : bids.length === 0 ? (
+            <p>No bids found for this item.</p>
           ) : (
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="creatorEmail">Verify you're the creator:</label>
-                <input
-                  type="email"
-                  id="creatorEmail"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  required
-                />
-                <small className="form-note">
-                  We'll send a verification link to this email if it matches the creator's email
-                </small>
-              </div>
-              
-              <div className="modal-actions">
-                <button type="button" onClick={onClose} disabled={loading}>
-                  Cancel
-                </button>
-                <button type="submit" disabled={loading}>
-                  {loading ? 'Sending...' : 'Request Access'}
-                </button>
-              </div>
-            </form>
+            <div className="bids-list">
+              {bids.map((bid, index) => (
+                <div key={index} className="bid-item">
+                  <div className="bid-details">
+                    <div className="bid-amount">₹{bid.bidAmount}</div>
+                    <div className="bid-email">{bid.bidderEmail}</div>
+                    <div className="bid-time">
+                      {new Date(bid.bidTime).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="bid-rank">#{index + 1}</div>
+                </div>
+              ))}
+            </div>
           )}
+          
+          <div className="modal-actions">
+            <button type="button" onClick={onClose}>
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

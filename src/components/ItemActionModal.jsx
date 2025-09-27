@@ -1,40 +1,33 @@
 import { useState } from 'react';
-import { ENDPOINTS } from '../api/apiConfig';
+import { ENDPOINTS, API_BASE_URL } from '../api/apiConfig';
 
 function ItemActionModal({ item, actionType, onClose, onActionComplete }) {
-  const [email, setEmail] = useState(item.email || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!email) {
-      setError('Please enter your email for verification');
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
       let response;
+      const email = localStorage.getItem('userEmail');
       const queryParams = new URLSearchParams({ email });
       
       if (actionType === 'delete') {
-        // Extract just the filename part from the path
         const fullPath = item.itemId;
         const filename = fullPath.split('/').pop();
         console.log('Deleting item with ID:', filename, 'from full path:', fullPath);
-        response = await fetch(ENDPOINTS.DELETE_ITEM(filename) + `?${queryParams}`, {
+        response = await fetch(`${API_BASE_URL}${ENDPOINTS.DELETE_ITEM(filename)}?${queryParams}`, {
           method: 'DELETE'
         });
       } else if (actionType === 'markSold') {
-        // Extract just the filename part from the path
         const fullPath = item.itemId;
         const filename = fullPath.split('/').pop();
         console.log('Marking item as sold with ID:', filename, 'from full path:', fullPath);
-        response = await fetch(ENDPOINTS.MARK_AS_SOLD(filename) + `?${queryParams}`, {
+        response = await fetch(`${API_BASE_URL}${ENDPOINTS.MARK_AS_SOLD(filename)}?${queryParams}`, {
           method: 'POST'
         });
       }
@@ -43,7 +36,6 @@ function ItemActionModal({ item, actionType, onClose, onActionComplete }) {
         const text = await response.text();
         console.log(`Error response (${response.status}):`, text);
         
-        // Handle specific error messages based on status code
         if (response.status === 404) {
           throw new Error('Item not found');
         } else if (response.status === 403) {
@@ -82,21 +74,10 @@ function ItemActionModal({ item, actionType, onClose, onActionComplete }) {
           {error && <div className="error-message">{error}</div>}
           
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="verifyEmail">
-                Verify your email:
-              </label>
-              <input
-                type="email"
-                id="verifyEmail"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email for verification"
-                required
-              />
-              <small className="form-note">
-                Please enter the email you used when creating this item
-              </small>
+            <div className="confirmation-text">
+              <p>Are you sure you want to {actionType === 'delete' ? 'delete' : 'mark as sold'} this item?</p>
+              <p><strong>Item:</strong> {item.name}</p>
+              <p><strong>Creator:</strong> {localStorage.getItem('userEmail')}</p>
             </div>
             
             <div className="modal-actions">

@@ -5,6 +5,8 @@ import ImageModal from './ImageModal';
 import ItemActionModal from './ItemActionModal';
 import BidAccessModal from './BidAccessModal';
 import PublicBidsModal from './PublicBidsModal';
+import AuctionManager from './AuctionManager';
+import BidManagement from './BidManagement';
 import { mockItems, getMockImageUrl } from './MockData';
 import './ai-description.css';
 import './public-bids.css';
@@ -47,20 +49,27 @@ function ItemList() {
   const [useMockData, setUseMockData] = useState(false);
   const [bidAccessItem, setBidAccessItem] = useState(null);
   const [publicBidsItem, setPublicBidsItem] = useState(null);
+  const [auctionItem, setAuctionItem] = useState(null);
+  const [manageBidsItem, setManageBidsItem] = useState(null);
+  const [filter, setFilter] = useState('all'); // 'all', 'myItems', 'myBids'
+  const [userBids, setUserBids] = useState([]); // Track user's bids
 
   const fetchItems = async () => {
     try {
+      console.log('Fetching items from:', ENDPOINTS.ITEMS);
       const response = await fetch(ENDPOINTS.ITEMS);
       
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log("Fetched items:", data); // Debug log
+      console.log("Catalog service response:", data);
       setItems(data);
+      setError(null);
     } catch (err) {
-      console.warn('Error fetching items, using mock data:', err.message);
+      console.error('Error fetching from catalog service:', err);
+      setError(`Catalog service error: ${err.message}`);
       setUseMockData(true);
       setItems(mockItems);
     } finally {
@@ -102,8 +111,10 @@ function ItemList() {
   };
 
   const handleBidPlaced = (itemId, bidAmount) => {
-    // In a real app, you might want to update the UI to reflect the new bid
+    // Refresh bids after placing a new bid
     console.log(`Bid placed on item ${itemId} for ${bidAmount}`);
+    // Refresh the items list to show updated bid count
+    fetchItems();
   };
   
   // Helper function to mask email
@@ -129,11 +140,36 @@ function ItemList() {
     if (useMockData) {
       return getMockImageUrl(item.itemId);
     }
-    return item.url || ENDPOINTS.IMAGE(item.itemId);
+    // Use the imageUrl field from catalog service response
+    return item.imageUrl;
   };
 
-  // Filter out DELETED items
-  const displayItems = items.filter(item => item.status !== 'DELETED');
+  // Helper functions
+  const getMyItemsCount = () => {
+    const userEmail = localStorage.getItem('userEmail');
+    return items.filter(item => 
+      item.creatorEmail === userEmail && item.status !== 'DELETED'
+    ).length;
+  };
+
+  const getFilteredItems = () => {
+    const userEmail = localStorage.getItem('userEmail');
+    let filtered = items.filter(item => item.status !== 'DELETED');
+    
+    switch(filter) {
+      case 'myItems':
+        return filtered.filter(item => item.creatorEmail === userEmail);
+      case 'myBids':
+        // Items where user has placed bids (you'll need to track this)
+        return filtered.filter(item => 
+          userBids.some(bid => bid.itemId === item.itemId)
+        );
+      default:
+        return filtered;
+    }
+  };
+
+  const displayItems = getFilteredItems();
 
   if (loading) return <div className="loading">Loading items...</div>;
   if (error) return <div className="error">Error loading items: {error}</div>;
@@ -141,7 +177,38 @@ function ItemList() {
 
   return (
     <div className="items-container">
-      <h2>Available Items for Bidding</h2>
+      <div className="items-header">
+        <h2>Available Items for Bidding</h2>
+        
+        {/* Filter Options */}
+        <div className="filter-options">
+          <button 
+            className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
+            onClick={() => setFilter('all')}
+          >
+            All Items
+          </button>
+          
+          {localStorage.getItem('userEmail') && (
+            <>
+              <button 
+                className={`filter-btn ${filter === 'myItems' ? 'active' : ''}`}
+                onClick={() => setFilter('myItems')}
+              >
+                My Items ({getMyItemsCount()})
+              </button>
+              
+              <button 
+                className={`filter-btn ${filter === 'myBids' ? 'active' : ''}`}
+                onClick={() => setFilter('myBids')}
+              >
+                Items I Bid On
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
       {actionSuccess && <div className="success-message">{actionSuccess}</div>}
       <div className="items-grid">
         {displayItems.map((item) => (
@@ -154,13 +221,13 @@ function ItemList() {
                   className="item-image"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = 'https://via.placeholder.com/150?text=No+Image';
+                    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
                   }}
                 />
                 <div className="watermark">Bid My Hobby</div>
-                {item.email && (
+                {item.creatorEmail && (
                   <div className="email-watermark">
-                    {maskEmail(item.email)}
+                    {maskEmail(item.creatorEmail)}
                   </div>
                 )}
                 {item.bids && item.bids.length > 0 && (
@@ -175,6 +242,9 @@ function ItemList() {
               )}
               {item.status === 'ACTIVE' && (
                 <div className="status-badge active">ACTIVE</div>
+              )}
+              {item.status === 'SALE_IN_PROGRESS' && (
+                <div className="status-badge sale-in-progress">SALE IN PROGRESS</div>
               )}
             </div>
             <div className="item-details">
@@ -201,29 +271,24 @@ function ItemList() {
                 </button>
                 
                 <button 
-                  className="view-bids-button"
+                  className="view-public-bids-button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setPublicBidsItem(item);
                   }}
                 >
-                  View Bids
-                  {item.bids && item.bids.length > 0 && (
-                    <span className="bid-badge">{item.bids.length}</span>
-                  )}
+                  View All Bids
                 </button>
                 
-                {/* Show management buttons for the item creator */}
-                {(item.email === localStorage.getItem('userEmail') || 
-                  item.email === 'bidmyhobby@gmail.com' || 
-                  item.userId === 'user123') && 
+                {/* Show management buttons only for the actual creator */}
+                {item.creatorEmail === localStorage.getItem('userEmail') && 
                   item.status === 'ACTIVE' && (
                   <div className="management-buttons">
                     <button 
-                      className="view-bids-button"
-                      onClick={() => setBidAccessItem(item)}
+                      className="manage-bids-button"
+                      onClick={() => setManageBidsItem(item)}
                     >
-                      Detailed Bids
+                      Manage Bids
                     </button>
                     <button 
                       className="mark-sold-button"
@@ -281,6 +346,22 @@ function ItemList() {
         <PublicBidsModal
           item={publicBidsItem}
           onClose={() => setPublicBidsItem(null)}
+        />
+      )}
+
+      {auctionItem && (
+        <AuctionManager
+          item={auctionItem}
+          onClose={() => setAuctionItem(null)}
+          onAuctionCompleted={handleActionComplete}
+        />
+      )}
+
+      {manageBidsItem && (
+        <BidManagement
+          item={manageBidsItem}
+          onClose={() => setManageBidsItem(null)}
+          onWinnerSelected={handleActionComplete}
         />
       )}
     </div>

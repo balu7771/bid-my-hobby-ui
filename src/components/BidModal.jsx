@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ENDPOINTS } from '../api/apiConfig';
+import { ENDPOINTS, API_BASE_URL } from '../api/apiConfig';
+import { NotificationService } from '../services/notificationService';
 
 function BidModal({ item, onClose, onBidPlaced }) {
   const [bidAmount, setBidAmount] = useState('');
@@ -42,25 +43,37 @@ function BidModal({ item, onClose, onBidPlaced }) {
     setError(null);
 
     try {
-      const response = await fetch(ENDPOINTS.PLACE_BID, {
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.PLACE_BID}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+        headers: { 
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           itemId: item.itemId,
-          userId: 'user123', // In a real app, this would come from authentication
-          bidAmount: parseFloat(bidAmount),
-          currency: item.currency || 'USD',
-          email: bidderEmail
+          bidderEmail: bidderEmail,
+          bidAmount: parseFloat(bidAmount)
         }),
       });
-
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to place bid');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to place bid');
       }
 
+      const result = await response.json();
+      console.log('Bid placed:', result);
+      
+      // Send bid confirmation email (optional - don't block on failure)
+      try {
+        await NotificationService.sendBidConfirmation(
+          bidderEmail, 
+          item.name, 
+          parseFloat(bidAmount)
+        );
+      } catch (emailError) {
+        console.warn('Failed to send confirmation email:', emailError);
+      }
+      
       onBidPlaced(item.itemId, parseFloat(bidAmount));
       onClose();
     } catch (err) {

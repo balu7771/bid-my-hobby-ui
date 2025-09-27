@@ -1,0 +1,225 @@
+/* Creator Dashboard Styles */
+
+.items-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.filter-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border: 2px solid #ddd;
+  background: white;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.filter-btn:hover {
+  border-color: #FF6B35;
+  color: #FF6B35;
+}
+
+.filter-btn.active {
+  background: #FF6B35;
+  color: white;
+  border-color: #FF6B35;
+}
+
+/* Email Indicator */
+.email-indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  padding: 10px 15px;
+  border-radius: 25px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+}
+
+.email-display {
+  font-size: 14px;
+  color: #666;
+}
+
+.change-email-button {
+  background: #FF6B35;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* Email Settings Modal */
+.email-settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.email-settings-modal .modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 400px;
+}
+
+/* Bid Management */
+.bid-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  transition: all 0.3s ease;
+}
+
+.bid-item:hover {
+  border-color: #FF6B35;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.1);
+}
+
+.highest-bid-item {
+  border-color: #28a745;
+  background: #f8fff9;
+}
+
+.bid-rank {
+  font-weight: bold;
+  color: #666;
+  min-width: 30px;
+}
+
+.bid-amount {
+  font-size: 18px;
+  font-weight: bold;
+  color: #FF6B35;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.highest-badge {
+  font-size: 16px;
+}
+
+.bid-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.bidder {
+  font-weight: 500;
+  color: #333;
+}
+
+.bid-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.select-winner-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.select-winner-btn:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+/* Management Buttons */
+.management-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.management-buttons button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.view-bids-button {
+  background: #007bff;
+  color: white;
+}
+
+.mark-sold-button {
+  background: #28a745;
+  color: white;
+}
+
+.delete-button {
+  background: #dc3545;
+  color: white;
+}
+
+.complete-auction-button {
+  background: #FF6B35;
+  color: white;
+  font-weight: bold;
+}
+
+.management-buttons button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .items-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-options {
+    justify-content: center;
+  }
+  
+  .email-indicator {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin-bottom: 20px;
+  }
+}

@@ -1,0 +1,95 @@
+/* Drag and Drop Improvements */
+.file-input-container {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.file-input-container.drag-active {
+  border-color: #FF6B35;
+  background-color: #fff5f2;
+}
+
+.drag-drop-area {
+  text-align: center;
+}
+
+.drag-drop-text {
+  margin-top: 10px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+}
+
+.loading-spinner.small { font-size: 12px; }
+.loading-spinner.medium { font-size: 14px; }
+.loading-spinner.large { font-size: 16px; }
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #FF6B35;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Revenue Share Display */
+.revenue-share-simple {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #e8f5e8;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.creator-earnings {
+  font-weight: bold;
+  color: #28a745;
+}
+
+.share-percentage {
+  color: #666;
+  font-size: 12px;
+}
+
+.revenue-share-detailed {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.revenue-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.revenue-item.creator {
+  font-weight: bold;
+  color: #28a745;
+  border-top: 1px solid #ddd;
+  padding-top: 8px;
+}
+
+.revenue-item.platform {
+  color: #666;
+  font-size: 14px;
+}

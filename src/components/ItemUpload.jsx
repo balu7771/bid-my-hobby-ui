@@ -1,19 +1,24 @@
 import { useState } from 'react';
-import { ENDPOINTS } from '../api/apiConfig';
+import { ENDPOINTS, API_BASE_URL } from '../api/apiConfig';
 
 function ItemUpload() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [email, setEmail] = useState('');
   const [basePrice, setBasePrice] = useState('');
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('INR'); // Default to INR for microservices
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
+    processFile(selectedFile);
+  };
+
+  const processFile = (selectedFile) => {
     setFile(selectedFile);
     
     // Create preview for the selected image
@@ -28,10 +33,30 @@ function ItemUpload() {
     }
   };
 
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!file || !title || !description || !email || !basePrice || !currency) {
+    if (!file || !title || !description || !email || !basePrice) {
       setMessage('Please fill all fields and select an image');
       return;
     }
@@ -39,29 +64,23 @@ function ItemUpload() {
     setLoading(true);
     setMessage('');
     
-    // Inform user about content moderation
-    setMessage('Uploading and analyzing image...');
+    // Inform user about processing
+    setMessage('Uploading to catalog service...');
 
-    // According to Swagger, the file should be in the request body as JSON
-    // But multipart/form-data is more appropriate for file uploads
+    // Create FormData for multipart upload
     const formData = new FormData();
     formData.append('file', file);
-    
-    // According to Swagger, these are query parameters
-    const queryParams = new URLSearchParams({
-      name: title,
-      description: description,
-      userId: 'user123', // In a real app, this would come from authentication
-      email: email,
-      basePrice: basePrice,
-      currency: currency
-    });
+    formData.append('name', title);
+    formData.append('description', description);
+    formData.append('email', email);
+    formData.append('basePrice', basePrice);
+    formData.append('currency', currency);
 
     try {
-      const response = await fetch(`${ENDPOINTS.UPLOAD_ITEM}?${queryParams}`, {
+      const response = await fetch(`${API_BASE_URL}${ENDPOINTS.UPLOAD_ITEM}`, {
         method: 'POST',
+        // Don't set Content-Type header - browser sets it automatically for FormData
         body: formData,
-        // Don't set Content-Type header, browser will set it with boundary for multipart/form-data
       });
 
       let data;
@@ -76,26 +95,20 @@ function ItemUpload() {
       }
       
       if (response.ok) {
-        setMessage('Item uploaded successfully!');
+        setMessage('Item uploaded successfully to catalog service!');
         setTitle('');
         setDescription('');
         setEmail('');
         setBasePrice('');
-        setCurrency('USD');
+        setCurrency('INR');
         setFile(null);
         setPreview(null);
       } else {
-        // Handle specific error messages for image moderation
-        if (data.message && data.message.includes('inappropriate content')) {
-          setMessage('Error: The image contains inappropriate content and cannot be uploaded.');
-        } else if (data.message && data.message.includes('not appear to be a hobby item')) {
-          setMessage('Error: The image does not appear to be a hobby item. Only hobby items can be uploaded.');
-        } else {
-          setMessage(`Error: ${data.message || 'Failed to upload item'}`);
-        }
+        setMessage(`Error: ${data.message || response.statusText || 'Failed to upload item to catalog service'}`);
       }
     } catch (error) {
-      setMessage(`Error: ${error.message}`);
+      console.error('Upload error:', error);
+      setMessage(`Network error: ${error.message}. Check if catalog service is running on port 8080.`);
     } finally {
       setLoading(false);
     }
@@ -104,6 +117,7 @@ function ItemUpload() {
   return (
     <div className="upload-container">
       <h2>Share Your Hobby Creation</h2>
+      <p className="service-info">📦 Uploading via Catalog Service (Microservices Architecture)</p>
       {message && <div className={message.includes('Error') ? 'error-message' : 'success-message'}>{message}</div>}
       
       <form onSubmit={handleSubmit}>
@@ -166,16 +180,22 @@ function ItemUpload() {
               onChange={(e) => setCurrency(e.target.value)}
               required
             >
+              <option value="INR">INR (₹)</option>
               <option value="USD">USD ($)</option>
               <option value="GBP">GBP (£)</option>
-              <option value="INR">INR (₹)</option>
             </select>
           </div>
         </div>
         
         <div className="form-group">
           <label htmlFor="image">Image:</label>
-          <div className="file-input-container">
+          <div 
+            className={`file-input-container ${dragActive ? 'drag-active' : ''}`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
             <input
               type="file"
               id="image"
@@ -185,23 +205,28 @@ function ItemUpload() {
               capture="environment"
               required
             />
-            <div className="upload-buttons">
-              <label htmlFor="image" className="file-input-label">
-                Choose File
-              </label>
-              <div className="camera-button-container">
-                <label htmlFor="camera" className="camera-input-label">
-                  Take Photo
+            <div className="drag-drop-area">
+              <div className="upload-buttons">
+                <label htmlFor="image" className="file-input-label">
+                  Choose File
                 </label>
-                <small className="mobile-only-note">Works on mobile devices</small>
-                <input
-                  type="file"
-                  id="camera"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="file-input"
-                  capture="user"
-                />
+                <div className="camera-button-container">
+                  <label htmlFor="camera" className="camera-input-label">
+                    Take Photo
+                  </label>
+                  <small className="mobile-only-note">Works on mobile devices</small>
+                  <input
+                    type="file"
+                    id="camera"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="file-input"
+                    capture="user"
+                  />
+                </div>
+              </div>
+              <div className="drag-drop-text">
+                {dragActive ? 'Drop image here' : 'Or drag & drop image here'}
               </div>
             </div>
             <span className="file-name">
@@ -209,7 +234,7 @@ function ItemUpload() {
             </span>
           </div>
           <small className="form-note">
-            Note: All images are analyzed by AI to ensure they're appropriate hobby items.
+            Note: Images processed through microservices architecture.
           </small>
           
           {preview && (
@@ -220,7 +245,7 @@ function ItemUpload() {
         </div>
         
         <button type="submit" disabled={loading} className="upload-button">
-          {loading ? 'Uploading...' : 'Share Your Creation'}
+          {loading ? 'Uploading via API Gateway...' : 'Share Your Creation'}
         </button>
       </form>
     </div>
